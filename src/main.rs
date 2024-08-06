@@ -3,7 +3,7 @@ extern crate chrono;
 
 use simplelog::*;
 use log::{info, error};
-use std::{fs::{self, File, OpenOptions}, path::{Path, PathBuf}, time::{Duration, SystemTime}};
+use std::{fs::{self, File, OpenOptions, remove_file}, path::{Path, PathBuf}, time::{Instant, Duration, SystemTime}, io::{Write, ErrorKind}};
 use chrono::*;
 use time::UtcOffset;
 use serde::Deserialize;
@@ -13,6 +13,8 @@ use zip::write::{FileOptions, ZipWriter};
 use std::collections::HashMap;
 use filetime::FileTime;
 use std::process;
+
+const APP_NAME: &str = "LogRC";
 
 #[derive(Deserialize)]
 struct Directory {
@@ -45,7 +47,10 @@ fn load_config(path: &str) -> Result<ConfigFile, Box<dyn std::error::Error>> {
     Ok(config_file)
 }
 
-fn starttask(days: &u64) {
+fn starttask(days: &u64) -> Instant{
+
+    // Capture the start time
+    let start_time = Instant::now();
 
     //error!("Bright red error");
     //warn!("This is a warning.");
@@ -53,17 +58,17 @@ fn starttask(days: &u64) {
     //info!("This only appears in the log file");
 
     // Initialize the logger
-    let log_name = "LogRC";
-    init_logger(log_name).expect("Failed to initialize logger");
-
-    info!("Starting up");
+    init_logger(APP_NAME).expect("Failed to initialize logger");
+    
+    // Start up text
+    info!("Starting up...");
 
     // Verify Application config settings
     if config_application_setting_checker(&days) {
         
         // Remove old Application log files
         info!("Application log retention: {} days", days);
-        remove_old_files("log", log_name, days).expect("Failed to remove application logs past retention");
+        remove_old_files("log", APP_NAME, days).expect("Failed to remove application logs past retention");
         
         } else {
         // Should work on making the exit call get back to main
@@ -71,12 +76,17 @@ fn starttask(days: &u64) {
 
     }
 
+    start_time
 
 }
 
-fn endtasks(){
+fn endtasks(start_time: Instant){
 
-    info!("Stopping Application")
+    // Calculate the elapsed time
+    let as_sec: u64 = start_time.elapsed().as_secs();
+    
+    // Print the elapsed time
+    info!("Application ran for: {} second(s)", as_sec);
     
 }
 
@@ -141,7 +151,7 @@ fn init_logger(log_name: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the logger
     CombinedLogger::init(
         vec![
-            TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
             WriteLogger::new(LevelFilter::Debug, config, log_file),
         ]
     ).unwrap();
@@ -320,6 +330,8 @@ fn move_files_except_today(
 ) -> std::io::Result<()> {
     let today = Local::now().date_naive();
 
+    create_status_file(&source_dir,&filename_contains,&dest_dir,today)?;
+
     for entry in fs::read_dir(source_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -337,22 +349,23 @@ fn move_files_except_today(
             let created_with_offset = created.with_timezone(&offset);
             let file_date = created_with_offset.date_naive();
 
-
-            // Check if the file was created today
-            if file_date == today {
-                info!("Not moving file: {:?} because it was made today", path.file_name().unwrap());
-                continue;
-            }
-
-            // Check if the extension is a log, txt, or zip file
             if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+
+                // Check if the extension is a log, txt, or zip file
                 if extension == "log" || extension == "txt" || extension == "zip" {
+
+                    // Check if the file was created today
+                    if file_date == today {
+                        info!("Not moving file: {:?} because it was made today", path.file_name().unwrap());
+                        continue;
+                    }
 
                     // Check if the filename contains the specified string
                     if filename.contains(filename_contains) {
                         let new_path = Path::new(dest_dir).join(path.file_name().unwrap());
                         fs::rename(&path, &new_path)?;
                         info!("Moved file: '{}' to '{}'", path.display(), new_path.display());
+
                     }
                 }
             }
@@ -360,6 +373,34 @@ fn move_files_except_today(
     }
 
     Ok(())
+}
+
+fn create_status_file (source_dir: &str, filename_contains: &str, dest_dir: &str, today: NaiveDate) -> std::io::Result<()>{
+
+    // Declare some const for naming and filling file with content
+    const FILE_SUFFIX: &str = "files have been moved.status";
+    const MESSAGE_TEMPLATE1: &str = "files older than";
+    const MESSAGE_TEMPLATE2: &str = "were moved to";
+
+    // Create the path and name, join them together
+    let file_name = format!("{} {}", filename_contains, FILE_SUFFIX);
+    let content = format!("'{}\\*{}*.[log|txt|zip]' {} {} {} '{}'", source_dir, filename_contains, MESSAGE_TEMPLATE1, today, MESSAGE_TEMPLATE2, dest_dir);
+    let file_path: PathBuf = Path::new(source_dir).join(file_name);
+
+    // Attempt to remove the file if it exists
+    match remove_file(&file_path) {
+        Ok(_) => (),
+        Err(e) if e.kind() == ErrorKind::NotFound => (), // File doesn't exist, which is fine
+        Err(e) => return Err(e), // Other errors should be propagated
+    }
+
+    // Make the status file with content
+    let mut file = File::create(&file_path)?;
+    file.write_all(content.as_bytes())?;
+    info!("Created a status file at '{}'", file_path.display());
+
+    Ok(())
+
 }
 
 fn config_application_setting_checker (dir_retentionindays: &u64) -> bool {
@@ -422,8 +463,9 @@ fn main() {
     // Load config file
     match load_config("config.toml") {
         Ok(config_file) => {
+
             // Starting Tasks
-            starttask(&config_file.application.logretentionindays);
+            let start_time = starttask(&config_file.application.logretentionindays);
 
             // For Each each directory imported from config file
             for dir in &config_file.directories.directory {
@@ -482,12 +524,14 @@ fn main() {
                 }
 
             }
+
+                // Stopping Tasks
+                endtasks(start_time);
+
         }
-        Err(e) => error!("Failed to load config: {}", e),
+        Err(e) => println!("Failed to load config: {}", e),
 
     }
    
-    // Stopping Tasks
-    endtasks()
 
 }

@@ -1,6 +1,6 @@
 [package]
-name = "rusttest"
-version = "0.1.0"
+name = "Log-RC"
+version = "2024.8.6"
 edition = "2021"
 
 [dependencies]
@@ -13,3 +13,15 @@ serde = { version = "1.0", features = ["derive"] }
 zip = "0.5.0"
 walkdir = "2.3"
 filetime = "0.2"
+
+[build-dependencies]
+winresource = "0.1.17"
+
+[package.metadata.winresource]
+OriginalFilename = "LogRetentionandCompression"
+FileDescription = "Reads config to preform retention, compression and file movement based on individual directory settings."
+LegalCopyright = "Copyright © 2077"
+ProductName = "LogRetentionandCompression"
+
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
