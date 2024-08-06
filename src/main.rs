@@ -113,6 +113,8 @@ fn get_new_log_path (date: &str, basepath: PathBuf, log_name: &str) -> PathBuf{
 
     let mut log_int = 1;
     let mut found: bool = false;
+
+    // Need to clone this for the whle loop
     let mut log_file_path = basepath.clone();
 
     while !found {
@@ -306,7 +308,9 @@ fn get_new_zip_path (date: &str, basepath: PathBuf, search_string: &str) -> Path
 
     let mut zip_int = 1;
     let mut found: bool = false;
-    let mut zip_file_path = basepath.clone(); // Initialize it with basepath
+
+    // Need to clone this for the while loop
+    let mut zip_file_path = basepath.clone();
 
     while !found {
         let zip_file_name = format!("{}_{}-{}.zip", date, search_string, zip_int);
@@ -529,7 +533,7 @@ fn main() {
                 endtasks(start_time);
 
         }
-        Err(e) => println!("Failed to load config: {}", e),
+        Err(e) => println!("Failed to load toml config: {}", e),
 
     }
    
