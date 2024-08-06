@@ -1,0 +1,8 @@
+[directories]
+directory = [
+    { path = "C:\\FakeLogs", filenamecontains = "LogCompressionandRetention", retentionindays = 5, compress = true, movetopath = "" },
+    { path = "C:\\FakeLogs2", filenamecontains = "LogCompressionandRetention", retentionindays = 5, compress = false, movetopath = "C:\\LogStorage"  }
+]
+
+[application]
+logretentionindays = 3
