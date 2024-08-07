@@ -1,7 +1,15 @@
 [package]
-name = "Log-RC"
+name = "LogRC"
 version = "2024.8.6"
 edition = "2021"
+
+[lib]
+name = "log_rc"
+path = "src/lib.rs"
+
+[[bin]]
+name = "LogRC"
+path = "src/main.rs"
 
 [dependencies]
 log = "0.4"

@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "Log-RC"
+name = "LogRC"
 version = "2024.8.6"
 dependencies = [
  "chrono",
