@@ -197,7 +197,8 @@ fn remove_old_files(dir_path: &str, search_str: &str, days: &u64) -> std::io::Re
 fn main() {
 
     // Load config file
-    match load_config("config.toml") {
+    let config_file_name = format!("{}.toml", APP_NAME);
+    match load_config(&config_file_name) {
         Ok(config_file) => {
 
             // Starting Tasks
