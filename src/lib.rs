@@ -3,7 +3,7 @@ use log::{info, error};
 use std::{fs::{self, File, OpenOptions, remove_file}, path::{Path, PathBuf}, io::{Write, ErrorKind}};
 use chrono::*;
 use walkdir::WalkDir;
-use zip::write::{FileOptions, ZipWriter};
+use zip::write::{SimpleFileOptions, ZipWriter};
 use std::collections::HashMap;
 use filetime::FileTime;
 
@@ -74,9 +74,11 @@ pub fn group_and_compress_files(dir_path: &str, search_string: &str) -> std::io:
         let create_zip = || -> std::io::Result<()> {
             let mut zip = ZipWriter::new(file);
 
+            let options = SimpleFileOptions::default();
+
             for file_path in &files {
                 let file_name = file_path.file_name().unwrap().to_str().unwrap();
-                zip.start_file(file_name, FileOptions::default())?;
+                zip.start_file(file_name, options)?;
                 let mut f = File::open(file_path)?;
                 std::io::copy(&mut f, &mut zip)?;
             }
