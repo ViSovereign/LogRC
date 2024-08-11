@@ -59,7 +59,8 @@ fn starttask(days: &u64) -> Instant{
     init_logger(LOG_NAME).expect("Failed to initialize logger");
     
     // Start up text
-    info!("Starting up {}...", APP_NAME);
+    let version = env!("CARGO_PKG_VERSION");
+    info!("Starting {} v{}", APP_NAME, version);
 
     // Verify Application config settings
     if config_application_setting_checker(&days) {

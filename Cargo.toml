@@ -27,7 +27,7 @@ winresource = "0.1.17"
 
 [package.metadata.winresource]
 OriginalFilename = "LogRetentionandCompression"
-FileDescription = "Reads config to preform retention, compression and file movement based on individual directory settings."
+FileDescription = "Log Retention and Compression."
 LegalCopyright = "Copyright © 2077"
 ProductName = "LogRetentionandCompression"
 
